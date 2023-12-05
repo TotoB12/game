@@ -150,7 +150,7 @@ function drawPlayers() {
     // Draw weapon
     const weaponLength = 15; // Length of the weapon
     const weaponWidth = 10; // Width of the weapon
-    const weaponDistance = player.size + weaponLength + 6; // Distance from player center
+    const weaponDistance = player.size + weaponLength + 4; // Distance from player center
 
     ctx.save();
     ctx.translate(player.x, player.y);
@@ -158,8 +158,16 @@ function drawPlayers() {
     ctx.fillStyle = "white";
     ctx.fillRect(-weaponWidth / 2, -weaponDistance, weaponWidth, weaponLength); // Adjusted position
     ctx.restore();
+    
+  // Draw other players' usernames
+  if (id !== socket.id) { // Check if not the local player
+    ctx.fillStyle = "white"; // Text color
+    ctx.font = "17px Space Grotesk"; // Adjust font size and style as needed
+    ctx.textAlign = "center";
+    ctx.fillText(player.username, player.x, player.y - player.size - 10); // Position the text above the player
   }
-}
+  }
+  }
 
 function updatePlayerPosition(player) {
   if (keys.a) {
