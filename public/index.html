@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>A tale of dots</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id='canvasContainer'>
+      <div id='centerline'></div>
+      <div id='center'></div>
+      <div id='left-zone'></div>
+      <div id='right-zone'></div>
+      <div class='corner corner-top-left'></div>
+      <div class='corner corner-top-right'></div>
+      <div class='corner corner-bottom-left'></div>
+      <div class='corner corner-bottom-right'></div>
+      <div class='top-side side'></div>
+      <div class='bottom-side side'></div>
+      
+      <canvas id="gameCanvas" width="1000" height="562"></canvas>
+    </div>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+:root {
+  --left-team-color: hsl(189, 100%, 51%);
+  --left-team-color-glow: hsla(189, 100%, 51%, 0.5);
+  --right-team-color: hsl(27, 50%, 55%);
+  --right-team-color-glow: hsla(27, 50%, 55%, 0.5);
+  --yellow: #Cfff04;
+  --arena-bg: hsl(0, 0%, 15%);
+  --arena-outline: hsl(0, 0%, 20%);
+  --arena-line: hsl(0, 0%, 65%);
+  --arena-line-glow: hsla(0, 0%, 65%, 0.5);
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    background-color: #000;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+canvas {
+  box-sizing: border-box;
+  position: relative;
+  border-radius: 21.6px;
+  overflow: hidden;
+  z-index: 9999;
+}
+
+#canvasContainer {
+  position: relative;
+  display: flex;
+
+  background-color: var(--arena-bg);
+  opacity: 1;
+  background-image: linear-gradient(var(--arena-outline) 2px, transparent 2px), linear-gradient(to right, var(--arena-outline) 2px, var(--arena-bg) 2px);
+  background-size: 75px 75px;
+  background-position: center;
+
+  border-radius: 21.6px;
+
+  border: 6px solid var(--arena-outline);
+
+  /* &::before {
+    --borderWidth: 3px;
+    content: "";
+    position: absolute;
+    z-index: -1;
+    top: calc(-1 * var(--borderWidth));
+    left: calc(-1 * var(--borderWidth));
+    width: calc(100% + 2 * var(--borderWidth));
+    height: calc(100% + 2 * var(--borderWidth));
+    background-image: linear-gradient(90deg, var(--left-team-color) 40%, var(--right-team-color) 60%);
+    border-radius: calc(21.6px + var(--borderWidth) / 2);
+  } */
+}
+
+#centerline {
+  position: absolute;
+  width: 3px;
+  height: 100%;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
+
+  &::before {
+    content: "";
+    position: absolute;
+    width: 100%;
+    top: 20px;
+    left: 0;
+    background-color: var(--arena-line);
+    height: 187px;
+    box-shadow: 0 0 5px 0px var(--arena-line-glow), inset 0 0 5px 0px var(--arena-line-glow);
+  }
+
+  &::after {
+    content: "";
+    position: absolute;
+    width: 100%;
+    top: 355px;
+    left: 0;
+    background-color: var(--arena-line);
+    height: 185px;
+    box-shadow: 0 0 5px 0px var(--arena-line-glow), inset 0 0 5px 0px var(--arena-line-glow);
+  }
+}
+
+#center {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background-color: transparent;
+  border: 3px solid var(--arena-line);
+  border-radius: 50%;
+  box-shadow: 0 0 5px 0px var(--arena-line), inset 0 0 5px 0px var(--arena-line);
+}
+
+#left-zone {
+  position: absolute;
+  width: 87px;
+  height: 225px;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: transparent;
+  border: 3px solid var(--left-team-color);
+  border-radius: 20px;
+  border-left: 0;
+  box-shadow: 0 0 5px 0px var(--left-team-color-glow), inset 0 0 5px 0px var(--left-team-color-glow);
+}
+
+#right-zone {
+  position: absolute;
+  width: 87px;
+  height: 225px;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: transparent;
+  border: 3px solid var(--right-team-color);
+  border-right: 0;
+  border-radius: 20px;
+  box-shadow: 0 0 5px 0px var(--right-team-color-glow), inset 0 0 5px 0px var(--right-team-color-glow);
+}
+
+.corner {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  border: 3px solid transparent;
+
+  &.corner-top-left {
+    border-color: var(--left-team-color);
+    top: 0;
+    left: 0;
+    border-radius: 30px 20px 50px 20px;
+    border-top: 0;
+    border-left: 0;
+    box-shadow: 0 0 5px 0px var(--left-team-color-glow), inset 0 0 5px 0px var(--left-team-color-glow);
+  }
+
+  &.corner-top-right {
+    border-color: var(--right-team-color);
+    top: 0;
+    right: 0;
+    border-radius: 20px 30px 20px 50px;
+    border-top: 0;
+    border-right: 0;
+    box-shadow: 0 0 5px 0px var(--right-team-color-glow), inset 0 0 5px 0px var(--right-team-color-glow);
+  }
+
+  &.corner-bottom-left {
+    border-color: var(--left-team-color);
+    bottom: 0;
+    left: 0;
+    border-radius: 20px 50px 20px 30px;
+    border-bottom: 0;
+    border-left: 0;
+    box-shadow: 0 0 5px 0px var(--left-team-color-glow), inset 0 0 5px 0px var(--left-team-color-glow);
+  }
+
+  &.corner-bottom-right {
+    border-color: var(--right-team-color);
+    bottom: 0;
+    right: 0;
+    border-radius: 50px 20px 30px 20px;
+    border-bottom: 0;
+    border-right: 0;
+    box-shadow: 0 0 5px 0px var(--right-team-color-glow), inset 0 0 5px 0px var(--right-team-color-glow);
+  }
+}
+
+/* .side {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  box-shadow: 0 0 5px 0 var(--arena-line);
+  left: 50%;
+  transform: translateX(-50%);
+  clip-path: polygon(25% 85%, 75% 85%, 100% 100%, 0% 100%);
+  border: 3px solid var(--arena-line);
+} */
+
+.side {
+  position: absolute;
+  z-index: 0;
+  width: 150px;
+  height: 3px;
+  background: var(--arena-line);
+  box-shadow: 0 0 5px 0 var(--arena-line);
+  left: 50%;
+  transform: translateX(-50%);
+
+  &::before, &::after {
+    content: "";
+    position: absolute;
+    width: 3px;
+    height: 45px;
+    background: var(--arena-line);
+    box-shadow: 0 0 5px 0 var(--arena-line);
+    /* border-radius: 10px; */
+  }
+
+  &.top-side {
+    top: 20px;
+
+    &::before {
+      transform-origin: bottom center;
+      transform: rotate(-60deg);
+      bottom: 50%;
+      left: -.8px;
+    }
+
+    &::after {
+      transform-origin: bottom center;
+      transform: rotate(60deg);
+      bottom: 50%;
+      right: -.8px;
+    }
+  }
+
+  &.bottom-side {
+    bottom: 20px;
+
+    &::before {
+      transform-origin: bottom center;
+      transform: rotate(-120deg);
+      bottom: 50%;
+      left: -.8px;
+    }
+
+    &::after {
+      transform-origin: bottom center;
+      transform: rotate(120deg);
+      bottom: 50%;
+      right: -.8px;
+    }
+  }
+}
