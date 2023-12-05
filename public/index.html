@@ -4,8 +4,20 @@
     <meta charset="UTF-8">
     <title>A tale of dots</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Orbitron">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Space Grotesk">
 </head>
 <body>
+    <div id="usernamePopup" class="popup">
+        <div class="popup-content">
+            <h2>Enter Your Username</h2>
+            <input type="text" id="usernameInput" maxlength="10" placeholder="Username (max 10 characters)">
+            <button id="submitUsername" alt="Join Game"></button>
+        </div>
+    </div>
+  
+    <h4 id="usernameDisplay"></h4>
+  
     <div id='canvasContainer'>
       <div id='centerline'></div>
       <div id='center'></div>
@@ -17,9 +29,12 @@
       <div class='corner corner-bottom-right'></div>
       <div class='top-side side'></div>
       <div class='bottom-side side'></div>
-      
+      <div id='inner-outline'></div>
+      <div id='central-outline'></div>
+      <div id='outer-outline'></div>
       <canvas id="gameCanvas" width="1000" height="562"></canvas>
     </div>
+  
     <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
     <script src="game.js"></script>
 </body>

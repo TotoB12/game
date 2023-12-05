@@ -1,19 +1,24 @@
 :root {
   --left-team-color: hsl(189, 100%, 51%);
+  --left-team-bullet-color: hsl(189, 100%, 81%);
   --left-team-color-glow: hsla(189, 100%, 51%, 0.5);
   --right-team-color: hsl(27, 50%, 55%);
   --right-team-color-glow: hsla(27, 50%, 55%, 0.5);
   --yellow: #Cfff04;
   --arena-bg: hsl(0, 0%, 15%);
   --arena-outline: hsl(0, 0%, 20%);
+  --arena-border: hsl(0, 0%, 30%);
+  --arena-border-glow: hsla(0, 0%, 85%, 0.7);
   --arena-line: hsl(0, 0%, 65%);
   --arena-line-glow: hsla(0, 0%, 65%, 0.5);
 }
 
 body {
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+    gap: 20px;
     height: 100vh;
     margin: 0;
     background-color: #000;
@@ -23,6 +28,11 @@ body {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
+  font-family: 'Space Grotesk', arial, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6, h7, h8, h9, h10 {
+  font-family: 'Orbitron', arial, sans-serif;
 }
 
 canvas {
@@ -36,6 +46,8 @@ canvas {
 #canvasContainer {
   position: relative;
   display: flex;
+  justify-content: center;
+  align-items: center;
 
   background-color: var(--arena-bg);
   opacity: 1;
@@ -43,26 +55,90 @@ canvas {
   background-size: 75px 75px;
   background-position: center;
 
-  border-radius: 23.6px;
+  --border-radius: 21.6px;
+  border-radius: var(--border-radius);
 
-  border: 6px solid var(--arena-outline);
-
-  /* &::before {
-    --borderWidth: 3px;
+  &::after {
     content: "";
     position: absolute;
-    z-index: -1;
-    top: calc(-1 * var(--borderWidth));
-    left: calc(-1 * var(--borderWidth));
-    width: calc(100% + 2 * var(--borderWidth));
-    height: calc(100% + 2 * var(--borderWidth));
-    background-image: linear-gradient(90deg, var(--left-team-color) 40%, var(--right-team-color) 60%);
-    border-radius: calc(21.6px + var(--borderWidth) / 2);
-  } */
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: var(--border-radius);
+    background-image: radial-gradient(circle, transparent 70%, var(--arena-bg));
+  }
+
+  --innerBorderWidth: 6px;
+  --centralBorderWidth: 4px;
+  --outerBorderWidth: 6px;
+}
+
+#inner-outline {
+  position: absolute;
+  z-index: 9999;
+  width: calc(100% + 2 * var(--innerBorderWidth) - 1px);
+  height: calc(100% + 2 * var(--innerBorderWidth) - 1px);
+  border: var(--innerBorderWidth) solid var(--arena-border);
+  border-radius: calc(var(--border-radius) + var(--innerBorderWidth));
+}
+
+#central-outline {
+  position: absolute;
+  z-index: -1;
+  top: calc(-1 * (var(--centralBorderWidth) + var(--innerBorderWidth)));
+  left: calc(-1 * (var(--centralBorderWidth) + var(--innerBorderWidth)));
+  width: calc(100% + (2 * var(--centralBorderWidth)) + 2 * var(--innerBorderWidth));
+  height: calc(100% + (2 * var(--centralBorderWidth)) + 2 * var(--innerBorderWidth));
+  background-image: linear-gradient(90deg, var(--left-team-color) 40%, var(--right-team-color) 60%);
+  border-radius: calc(var(--border-radius) + var(--innerBorderWidth) + var(--centralBorderWidth));
+
+  overflow: hidden;
+
+  &::before {  
+    content: "";
+    background: linear-gradient(
+      90deg,
+      rgb(0 0 0 / 0.25),
+      rgb(0 0 0 / 0.25) 3px,
+      transparent 3px,
+      transparent 9px
+    );
+    background-size: 9px 100%;
+    height: 100%;
+    width: 100%;
+    animation: pan-overlay 32s infinite linear;
+    position: absolute;
+    z-index: 2;
+    left: 0px;
+    top: 0px;
+  }
+}
+
+
+@keyframes pan-overlay {
+  from {
+    background-position: 0% 0%;
+  }
+
+  to {
+    background-position: -100% 0%;
+  }
+}
+
+#outer-outline {
+  position: absolute;
+  z-index: -2;
+  top: calc(-1 * (var(--outerBorderWidth) + var(--centralBorderWidth) + var(--innerBorderWidth)));
+  left: calc(-1 * (var(--outerBorderWidth) + var(--centralBorderWidth) + var(--innerBorderWidth)));
+  width: calc(100% + (2 * var(--outerBorderWidth) + 2 * var(--centralBorderWidth)) + 2 * var(--innerBorderWidth));
+  height: calc(100% + (2 * var(--outerBorderWidth) + 2 * var(--centralBorderWidth)) + 2 * var(--innerBorderWidth));
+  background-color: var(--arena-border);
+  border-radius: calc(var(--border-radius) + var(--innerBorderWidth) + var(--centralBorderWidth) + var(--outerBorderWidth));
 }
 
 #centerline {
   position: absolute;
+  z-index: 1;
   width: 3px;
   height: 100%;
   left: 50%;
@@ -94,6 +170,7 @@ canvas {
 
 #center {
   position: absolute;
+  z-index: 1;
   width: 150px;
   height: 150px;
   left: 50%;
@@ -107,6 +184,7 @@ canvas {
 
 #left-zone {
   position: absolute;
+  z-index: 1;
   width: 87px;
   height: 225px;
   left: 0;
@@ -121,6 +199,7 @@ canvas {
 
 #right-zone {
   position: absolute;
+  z-index: 1;
   width: 87px;
   height: 225px;
   right: 0;
@@ -135,6 +214,7 @@ canvas {
 
 .corner {
   position: absolute;
+  z-index: 1;
   width: 50px;
   height: 50px;
   border: 3px solid transparent;
@@ -180,20 +260,9 @@ canvas {
   }
 }
 
-/* .side {
-  position: absolute;
-  width: 150px;
-  height: 150px;
-  box-shadow: 0 0 5px 0 var(--arena-line);
-  left: 50%;
-  transform: translateX(-50%);
-  clip-path: polygon(25% 85%, 75% 85%, 100% 100%, 0% 100%);
-  border: 3px solid var(--arena-line);
-} */
-
 .side {
   position: absolute;
-  z-index: 0;
+  z-index: 1;
   width: 150px;
   height: 3px;
   background: var(--arena-line);
@@ -208,7 +277,6 @@ canvas {
     height: 45px;
     background: var(--arena-line);
     box-shadow: 0 0 5px 0 var(--arena-line);
-    /* border-radius: 10px; */
   }
 
   &.top-side {
@@ -245,5 +313,82 @@ canvas {
       bottom: 50%;
       right: -.8px;
     }
+  }
+}
+
+
+/* --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
+                            FORM 
+--- --- --- --- --- --- --- --- --- --- --- --- --- --- --- */
+
+#usernameDisplay {
+    color: white; /* Choose a suitable text color */
+    text-align: center;
+    font-size: 20px; /* Adjust font size as needed */
+    margin-bottom: 10px; /* Spacing between the username and the canvas */
+}
+
+.popup {
+    display: none;
+    position: fixed;
+    z-index: 10000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Dimmed background */
+    align-items: center;
+    justify-content: center;
+    display: flex;
+}
+
+.popup-content {
+    background: white;
+    padding: 20px;
+    border-radius: 5px;
+    text-align: center;
+}
+
+#usernameInput {
+    margin-top: 10px;
+    padding: 8px;
+    width: 80%;
+}
+
+/* #submitUsername {
+    margin-top: 15px;
+    padding: 10px 20px;
+    cursor: pointer;
+} */
+
+#submitUsername {
+    border: none;
+    margin-top: 15px;
+    padding: 2px 2px;
+    cursor: pointer;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    color:#000000;
+    background-image: linear-gradient(90deg, #00C0FF 0%, #FFCF00 49%, #FC4F4F 80%, #00C0FF 100%);
+    text-transform:uppercase;
+    font-size:1.5vw;
+    font-weight:bold;
+}
+#submitUsername:after {
+  content:attr(alt);
+  width:8vw;
+  height:3vw;
+  background-color:#ffffff;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+#submitUsername:hover {
+  animation:slidebg 2s linear infinite;
+}
+@keyframes slidebg {
+  to {
+    background-position:20vw;
   }
 }

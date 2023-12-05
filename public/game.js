@@ -1,6 +1,6 @@
-const socket = io();
 let players = {};
 let needsUpdate = false;
+let usernameSubmitted = false;
 
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
@@ -13,6 +13,7 @@ let bullets = [];
 
 const bulletSpeed = 10;
 const bulletSize = 5; // Adjust size as needed
+const bulletColorLeftTeam = "#9EF0FF";
 
 let keys = {
   w: false,
@@ -23,35 +24,102 @@ let keys = {
 
 let mousePosition = { x: 0, y: 0 };
 
+let socket; // Declare the socket variable
+
+function initializeGame(username) {
+  usernameSubmitted = true;
+
+  socket = io();
+
+  socket.emit("register", { username });
+
+  // Existing socket event listeners...
+  socket.on("players", (updatedPlayers) => {
+    // Remove disconnected players
+    for (const id in players) {
+      if (!updatedPlayers[id]) {
+        delete players[id];
+      }
+    }
+
+    // Update or add new players
+    for (const id in updatedPlayers) {
+      if (players[id]) {
+        players[id].targetX = updatedPlayers[id].x;
+        players[id].targetY = updatedPlayers[id].y;
+        // Update target weapon angle for other players
+        if (id !== socket.id) {
+          players[id].targetWeaponAngle = updatedPlayers[id].weaponAngle;
+        }
+      } else {
+        players[id] = updatedPlayers[id];
+        // Initialize weapon angle for new players
+        players[id].weaponAngle = updatedPlayers[id].weaponAngle;
+      }
+    }
+  });
+
+  // Add this inside initializeGame after establishing the socket connection
+  socket.on("bullets", (updatedBullets) => {
+    bullets = updatedBullets;
+  });
+
+  // Start the game update loop
+  update();
+}
+
+// Event listener for submitting the username
+document
+  .getElementById("submitUsername")
+  .addEventListener("click", function () {
+    const username = document
+      .getElementById("usernameInput")
+      .value.substring(0, 10);
+    if (username.trim() !== "") {
+      document.getElementById("usernameDisplay").innerText = username;
+      document.getElementById("usernamePopup").style.display = "none";
+
+      // Initialize and start the game with the username
+      initializeGame(username);
+    } else {
+      alert("Please enter a username.");
+    }
+  });
+
+// Show the popup when the page loads
+window.onload = function () {
+  document.getElementById("usernamePopup").style.display = "flex";
+};
+
 function lerpAngle(a, b, t) {
   let delta = ((b - a + Math.PI) % (2 * Math.PI)) - Math.PI;
   return a + delta * t;
 }
 
-socket.on("players", (updatedPlayers) => {
-  // Remove disconnected players
-  for (const id in players) {
-    if (!updatedPlayers[id]) {
-      delete players[id];
-    }
-  }
+// socket.on("players", (updatedPlayers) => {
+//   // Remove disconnected players
+//   for (const id in players) {
+//     if (!updatedPlayers[id]) {
+//       delete players[id];
+//     }
+//   }
 
-  // Update or add new players
-  for (const id in updatedPlayers) {
-    if (players[id]) {
-      players[id].targetX = updatedPlayers[id].x;
-      players[id].targetY = updatedPlayers[id].y;
-      // Update target weapon angle for other players
-      if (id !== socket.id) {
-        players[id].targetWeaponAngle = updatedPlayers[id].weaponAngle;
-      }
-    } else {
-      players[id] = updatedPlayers[id];
-      // Initialize weapon angle for new players
-      players[id].weaponAngle = updatedPlayers[id].weaponAngle;
-    }
-  }
-});
+//   // Update or add new players
+//   for (const id in updatedPlayers) {
+//     if (players[id]) {
+//       players[id].targetX = updatedPlayers[id].x;
+//       players[id].targetY = updatedPlayers[id].y;
+//       // Update target weapon angle for other players
+//       if (id !== socket.id) {
+//         players[id].targetWeaponAngle = updatedPlayers[id].weaponAngle;
+//       }
+//     } else {
+//       players[id] = updatedPlayers[id];
+//       // Initialize weapon angle for new players
+//       players[id].weaponAngle = updatedPlayers[id].weaponAngle;
+//     }
+//   }
+// });
 
 function drawPlayers() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -213,35 +281,36 @@ function handleCollisions() {
 }
 
 function update() {
-  if (socket.id && players[socket.id]) {
-    updatePlayerPosition(players[socket.id]);
+  if (usernameSubmitted) {
+    if (socket.id && players[socket.id]) {
+      updatePlayerPosition(players[socket.id]);
 
-    // Update the weapon angle continuously
-    const angle = getAngle(
-      players[socket.id].x,
-      players[socket.id].y,
-      mousePosition.x,
-      mousePosition.y
-    );
-    players[socket.id].targetWeaponAngle = angle;
+      // Update the weapon angle continuously
+      const angle = getAngle(
+        players[socket.id].x,
+        players[socket.id].y,
+        mousePosition.x,
+        mousePosition.y
+      );
+      players[socket.id].targetWeaponAngle = angle;
 
-    // Emit only if an update is needed
-    if (needsUpdate) {
-      socket.emit("move_player", {
-        x: players[socket.id].x,
-        y: players[socket.id].y,
-        velocityX: players[socket.id].velocityX,
-        velocityY: players[socket.id].velocityY,
-        weaponAngle: angle,
-      });
-      needsUpdate = false;
+      // Emit only if an update is needed
+      if (needsUpdate) {
+        socket.emit("move_player", {
+          x: players[socket.id].x,
+          y: players[socket.id].y,
+          velocityX: players[socket.id].velocityX,
+          velocityY: players[socket.id].velocityY,
+          weaponAngle: angle,
+        });
+        needsUpdate = false;
+      }
     }
+    handleCollisions(); // Handle collisions
+    drawPlayers();
+    drawBullets();
+    requestAnimationFrame(update); // Move this inside the if condition
   }
-  updateBullets();
-  handleCollisions(); // Handle collisions
-  drawPlayers();
-  drawBullets();
-  requestAnimationFrame(update);
 }
 
 document.addEventListener("keydown", (event) => {
@@ -299,41 +368,22 @@ canvas.addEventListener("click", (event) => {
       velocityX: bulletVelocityX,
       velocityY: bulletVelocityY,
     });
+
+    // Emit bullet data to the server, including canvas dimensions
+    socket.emit("shoot_bullet", {
+      x: bulletX,
+      y: bulletY,
+      velocityX: bulletVelocityX,
+      velocityY: bulletVelocityY,
+      canvasWidth: canvas.width,
+      canvasHeight: canvas.height,
+    });
   }
 });
 
-function updateBullets() {
-  for (let i = bullets.length - 1; i >= 0; i--) {
-    const bullet = bullets[i];
-    bullet.x += bullet.velocityX;
-    bullet.y += bullet.velocityY;
-
-    // Check for collision with walls
-    if (
-      bullet.x < 0 ||
-      bullet.x > canvas.width ||
-      bullet.y < 0 ||
-      bullet.y > canvas.height
-    ) {
-      bullets.splice(i, 1); // Remove bullet
-    } else {
-      // Check for collision with players
-      for (const id in players) {
-        if (
-          Math.hypot(bullet.x - players[id].x, bullet.y - players[id].y) <
-          players[id].size + bulletSize
-        ) {
-          bullets.splice(i, 1); // Remove bullet
-          break;
-        }
-      }
-    }
-  }
-}
-
 function drawBullets() {
   for (const bullet of bullets) {
-    ctx.fillStyle = "black"; // Or any color for bullets
+    ctx.fillStyle = bulletColorLeftTeam;
     ctx.beginPath();
     ctx.arc(bullet.x, bullet.y, bulletSize, 0, Math.PI * 2);
     ctx.fill();
