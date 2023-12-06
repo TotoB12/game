@@ -5,15 +5,30 @@ let usernameSubmitted = false;
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 
+let root = document.documentElement;
+
 const acceleration = 0.5;
 const friction = 0.9;
 const maxSpeed = 5;
 
+const shootingTimeoutIndicator = document.getElementById(
+  "shooting-timeout-indicator"
+);
+
+const leftTeamColor = getComputedStyle(root)
+  .getPropertyValue("--left-team-color")
+  .trim();
+
 let bullets = [];
 
-const bulletSpeed = 10;
+const bulletSpeed = 20;
 const bulletSize = 5; // Adjust size as needed
-const bulletColorLeftTeam = "#9EF0FF";
+const bulletColorLeftTeam = getComputedStyle(root)
+  .getPropertyValue("--left-team-bullet-color")
+  .trim();
+const shootingTimeout = 250; // Adjust timeout as needed
+root.style.setProperty("--shooting-timeout", shootingTimeout + "ms");
+let isShootingTimeout = false;
 
 let keys = {
   w: false,
@@ -76,7 +91,7 @@ document
       .getElementById("usernameInput")
       .value.substring(0, 10);
     if (username.trim() !== "") {
-      document.getElementById("usernameDisplay").innerText = username;
+      // document.getElementById("usernameDisplay").innerText = username;
       document.getElementById("usernamePopup").style.display = "none";
 
       // Initialize and start the game with the username
@@ -158,37 +173,50 @@ function drawPlayers() {
     ctx.fillStyle = "white";
     ctx.fillRect(-weaponWidth / 2, -weaponDistance, weaponWidth, weaponLength); // Adjusted position
     ctx.restore();
-    
-  // Draw other players' usernames
-  if (id !== socket.id) { // Check if not the local player
-    ctx.fillStyle = "white"; // Text color
+
+    // Draw other players' usernames
+    if (id !== socket.id) {
+      // Check if not the local player
+      ctx.fillStyle = "white"; // Text color
+    } else {
+      ctx.fillStyle = leftTeamColor;
+    }
     ctx.font = "17px Space Grotesk"; // Adjust font size and style as needed
     ctx.textAlign = "center";
     ctx.fillText(player.username, player.x, player.y - player.size - 10); // Position the text above the player
   }
-  }
-  }
+}
 
 function updatePlayerPosition(player) {
+  // Define a speed multiplier for specific players
+  const speedMultiplier =
+    player.username === "Txori" || player.username === "TotoB12" ? 1.2 : 1; // 1.2x speed for Txori and TotoB12
+
   if (keys.a) {
-    player.velocityX -= acceleration;
+    player.velocityX -= acceleration * speedMultiplier;
   }
   if (keys.d) {
-    player.velocityX += acceleration;
+    player.velocityX += acceleration * speedMultiplier;
   }
 
   if (keys.w) {
-    player.velocityY -= acceleration;
+    player.velocityY -= acceleration * speedMultiplier;
   }
   if (keys.s) {
-    player.velocityY += acceleration;
+    player.velocityY += acceleration * speedMultiplier;
   }
 
   player.velocityX *= friction;
   player.velocityY *= friction;
 
-  player.velocityX = Math.max(Math.min(player.velocityX, maxSpeed), -maxSpeed);
-  player.velocityY = Math.max(Math.min(player.velocityY, maxSpeed), -maxSpeed);
+  player.velocityX = Math.max(
+    Math.min(player.velocityX, maxSpeed * speedMultiplier),
+    -maxSpeed * speedMultiplier
+  );
+  player.velocityY = Math.max(
+    Math.min(player.velocityY, maxSpeed * speedMultiplier),
+    -maxSpeed * speedMultiplier
+  );
 
   // Update position with boundary checks
   player.x = Math.max(
@@ -199,6 +227,9 @@ function updatePlayerPosition(player) {
     Math.min(player.y + player.velocityY, canvas.height - player.size),
     player.size
   );
+
+  shootingTimeoutIndicator.style.left = player.x + "px";
+  shootingTimeoutIndicator.style.top = player.y + "px";
 
   // Set the flag to true if movement occurs
   if (player.velocityX !== 0 || player.velocityY !== 0) {
@@ -349,6 +380,9 @@ canvas.addEventListener("mousemove", (event) => {
 
 canvas.addEventListener("click", (event) => {
   if (players[socket.id]) {
+    if (isShootingTimeout) {
+      return;
+    }
     // Calculate bullet velocity based on weapon angle and player's velocity
     // const bulletVelocityX = bulletSpeed * Math.cos(players[socket.id].weaponAngle) + players[socket.id].velocityX;
     // const bulletVelocityY =
@@ -386,12 +420,28 @@ canvas.addEventListener("click", (event) => {
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
     });
+
+    if (players[socket.id] && players[socket.id].username !== "TotoB12") {
+      isShootingTimeout = true;
+      shootingTimeoutIndicator.style.display = "block";
+      shootingTimeoutIndicator.classList.add("active");
+      setTimeout(() => {
+        isShootingTimeout = false;
+        shootingTimeoutIndicator.style.display = "none";
+        shootingTimeoutIndicator.classList.remove("active");
+      }, shootingTimeout);
+    }
   }
 });
 
 function drawBullets() {
   for (const bullet of bullets) {
-    ctx.fillStyle = bulletColorLeftTeam;
+    const owner = players[bullet.owner];
+    if (owner) {
+      ctx.fillStyle = owner.color; // Use player's team color for the bullet
+    } else {
+      ctx.fillStyle = "grey"; // Default color if owner is not found
+    }
     ctx.beginPath();
     ctx.arc(bullet.x, bullet.y, bulletSize, 0, Math.PI * 2);
     ctx.fill();

@@ -2,15 +2,16 @@
   --left-team-color: hsl(189, 100%, 51%);
   --left-team-bullet-color: hsl(189, 100%, 81%);
   --left-team-color-glow: hsla(189, 100%, 51%, 0.5);
-  --right-team-color: hsl(27, 50%, 55%);
+  --right-team-color: hsl(27, 70%, 55%);
   --right-team-color-glow: hsla(27, 50%, 55%, 0.5);
-  --yellow: #Cfff04;
+  --neutral: #36cc00;
   --arena-bg: hsl(0, 0%, 15%);
   --arena-outline: hsl(0, 0%, 20%);
   --arena-border: hsl(0, 0%, 30%);
   --arena-border-glow: hsla(0, 0%, 85%, 0.7);
   --arena-line: hsl(0, 0%, 65%);
   --arena-line-glow: hsla(0, 0%, 65%, 0.5);
+  --text: hsl(0, 0%, 95%);
 }
 
 body {
@@ -28,19 +29,40 @@ body {
   box-sizing: border-box;
   padding: 0;
   margin: 0;
-  font-family: 'Space Grotesk', arial, sans-serif;
+  font-family: 'Space Grotesk', arial, sans-serif;  
+  color: var(--text);
 }
 
 h1, h2, h3, h4, h5, h6, h7, h8, h9, h10 {
   font-family: 'Orbitron', arial, sans-serif;
 }
 
-canvas {
-  box-sizing: border-box;
+
+#gameContainer {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+  width: 100%;
+}
+
+#game-infos {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+}
+
+#shooting-timeout-indicator {
   position: relative;
-  border-radius: 21.6px;
-  overflow: hidden;
-  z-index: 9999;
+  width: 50px;
+  height: 200px;
+  border: 1px solid var(--arena-border);
+}
+
+canvas {
+    cursor: crosshair; /* Default crosshair cursor */
+    /* If you have a custom cursor image:
+    cursor: url('path/to/crosshair.png'), crosshair;
+    */
 }
 
 #canvasContainer {
@@ -73,18 +95,20 @@ canvas {
   --outerBorderWidth: 6px;
 }
 
-#inner-outline {
+.inner-outline {
   position: absolute;
-  z-index: 9999;
+  top: calc(-1 * var(--innerBorderWidth));
+  left: calc(-1 * var(--innerBorderWidth));
+  z-index: 5555;
   width: calc(100% + 2 * var(--innerBorderWidth) - 1px);
   height: calc(100% + 2 * var(--innerBorderWidth) - 1px);
   border: var(--innerBorderWidth) solid var(--arena-border);
   border-radius: calc(var(--border-radius) + var(--innerBorderWidth));
 }
 
-#central-outline {
+.central-outline {
   position: absolute;
-  z-index: -1;
+  z-index: -2;
   top: calc(-1 * (var(--centralBorderWidth) + var(--innerBorderWidth)));
   left: calc(-1 * (var(--centralBorderWidth) + var(--innerBorderWidth)));
   width: calc(100% + (2 * var(--centralBorderWidth)) + 2 * var(--innerBorderWidth));
@@ -125,15 +149,23 @@ canvas {
   }
 }
 
-#outer-outline {
+.outer-outline {
   position: absolute;
-  z-index: -2;
+  z-index: -3;
   top: calc(-1 * (var(--outerBorderWidth) + var(--centralBorderWidth) + var(--innerBorderWidth)));
   left: calc(-1 * (var(--outerBorderWidth) + var(--centralBorderWidth) + var(--innerBorderWidth)));
   width: calc(100% + (2 * var(--outerBorderWidth) + 2 * var(--centralBorderWidth)) + 2 * var(--innerBorderWidth));
   height: calc(100% + (2 * var(--outerBorderWidth) + 2 * var(--centralBorderWidth)) + 2 * var(--innerBorderWidth));
   background-color: var(--arena-border);
   border-radius: calc(var(--border-radius) + var(--innerBorderWidth) + var(--centralBorderWidth) + var(--outerBorderWidth));
+}
+
+canvas {
+  box-sizing: border-box;
+  position: relative;
+  border-radius: 21.6px;
+  overflow: hidden;
+  z-index: 8888;
 }
 
 #centerline {
@@ -316,6 +348,33 @@ canvas {
   }
 }
 
+#shooting-timeout-indicator {
+  display: none;
+  position: absolute;
+  z-index: 9999;
+  width: 30px;
+  height: 5px;
+  border: 1px solid var(--arena-line);
+  transform: translate(-50%, -50%);
+
+  & span {
+    position: absolute;
+    height: 100%;
+    top: 0;
+    left: 0;
+    background: var(--arena-line);
+  }
+
+  &.active span {
+    animation: shooting-timeout-indicator-animation var(--shooting-timeout) linear;
+  }
+}
+
+@keyframes shooting-timeout-indicator-animation {
+  0% { width: 100%; }
+  100% { width: 0%; }
+}
+
 
 /* --- --- --- --- --- --- --- --- --- --- --- --- --- --- ---
                             FORM 
@@ -343,52 +402,116 @@ canvas {
 }
 
 .popup-content {
-    background: white;
+    position: relative;
+    z-index: 0;
     padding: 20px;
-    border-radius: 5px;
     text-align: center;
+    --innerBorderWidth: 4px;
+    --centralBorderWidth: 2px;
+    --outerBorderWidth: 4px;
+    --border-radius: 10px;
+    border-radius: var(--border-radius);
+
+    .inner-outline,
+    .central-outline,
+    .outer-outline {
+      transform: skew(0deg);
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      transform: skew(0deg);
+      background: var(--arena-bg);
+    }
+
+    .inner-outline {
+      z-index: -1;
+    }
+}
+
+#usernameInputContainer {
+  position: relative;
+  margin-top: 20px;
+  width: 100%;
+  
+  &::before {
+    content: "";
+    position: absolute;
+    z-index: -1;
+    height: 2px;
+    width: 100%;
+    background: var(--arena-line);
+    box-shadow: 0 0 5px 0 var(--arena-line-glow);
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+  }
 }
 
 #usernameInput {
-    margin-top: 10px;
-    padding: 8px;
-    width: 80%;
+  padding: 10px;
+  width: 80%;
+  border: 2px solid var(--arena-line);
+  border-radius: 10px;
+  background: var(--arena-bg);
+  outline: none;
+  box-shadow: 0 0 5px 0 var(--arena-line-glow);
 }
-
-/* #submitUsername {
-    margin-top: 15px;
-    padding: 10px 20px;
-    cursor: pointer;
-} */
 
 #submitUsername {
-    border: none;
+    --btn-background: var(--arena-line);
+    position: relative;
     margin-top: 15px;
-    padding: 2px 2px;
+    padding: 9px 16px;
+    border: none;
     cursor: pointer;
-    align-items:center;
-    justify-content:center;
-    text-decoration:none;
-    color:#000000;
-    background-image: linear-gradient(90deg, #00C0FF 0%, #FFCF00 49%, #FC4F4F 80%, #00C0FF 100%);
-    text-transform:uppercase;
-    font-size:1.5vw;
-    font-weight:bold;
-}
-#submitUsername:after {
-  content:attr(alt);
-  width:8vw;
-  height:3vw;
-  background-color:#ffffff;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-}
-#submitUsername:hover {
-  animation:slidebg 2s linear infinite;
-}
-@keyframes slidebg {
-  to {
-    background-position:20vw;
-  }
+    background: none;
+    color: var(--arena-bg);
+
+    transition: background-color .3s;
+
+    &:hover {
+      --btn-background: var(--text);
+
+      &::after {
+        opacity: 1;
+      }
+    }
+
+    &::before {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 150%;
+      height: calc(100% + 1px);
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      -webkit-clip-path: polygon(85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%, 15% 0);
+      clip-path: polygon(85% 0, 100% 50%, 85% 100%, 15% 100%, 0 50%, 15% 0);
+      background-color: var(--btn-background);
+      transition: background-color 1s;
+    }
+
+    &::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      width: 100%;
+      height: 100%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      border-radius: 50%;
+      background-color: var(--btn-background);
+      filter: blur(20px);
+      opacity: 0;
+      transition: opacity 1s;
+    }
 }
