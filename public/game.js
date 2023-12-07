@@ -15,33 +15,46 @@ const shootingTimeoutIndicator = document.getElementById(
   "shooting-timeout-indicator"
 );
 
-const leftTeamColor = getComputedStyle(root)
-  .getPropertyValue("--left-team-color")
-  .trim();
+const ammoIndicator = document.getElementById(
+  "ammo-indicator"
+);
 
 let bullets = [];
 
 const bulletSpeed = 20;
-const bulletSize = 5; // Adjust size as needed
+const bulletSize = 5;
 const bulletColorLeftTeam = getComputedStyle(root)
   .getPropertyValue("--left-team-bullet-color")
   .trim();
+const leftTeamColor = getComputedStyle(root)
+.getPropertyValue("--left-team-color")
+.trim();
+
 const shootingTimeout = 250; // Adjust timeout as needed
 root.style.setProperty("--shooting-timeout", shootingTimeout + "ms");
+
 let isShootingTimeout = false;
+
+const reloadTime = 3000;
+root.style.setProperty("--reload-time", reloadTime + "ms");
 
 let keys = {
   w: false,
   a: false,
   s: false,
   d: false,
+  space: false,
 };
 
 let mousePosition = { x: 0, y: 0 };
 
+const admins = ["TotoB12", "Txori"]
+
 let socket; // Declare the socket variable
 
 function initializeGame(username) {
+  // Save username in localStorage
+  localStorage.setItem("lastUsername", username);
   usernameSubmitted = true;
 
   socket = io();
@@ -79,6 +92,29 @@ function initializeGame(username) {
     bullets = updatedBullets;
   });
 
+  // Inside the initializeGame function, after establishing the socket connection
+  socket.on("register_response", (response) => {
+    if (!response.success) {
+      alert(response.message);
+      document.getElementById("usernamePopup").style.display = "flex";
+      usernameSubmitted = false; // Reset the flag to allow trying again
+    }
+  });
+
+  socket.on("player_hit", (data) => {
+    if (players[data.playerId]) {
+      players[data.playerId].isHit = true;
+
+      // Reset color after 0.2 seconds
+      setTimeout(() => {
+        if (players[data.playerId]) {
+          players[data.playerId].isHit = false;
+        }
+      }, 100); // 0.1 seconds
+    }
+  });
+
+
   // Start the game update loop
   update();
 }
@@ -96,6 +132,10 @@ document
 
       // Initialize and start the game with the username
       initializeGame(username);
+
+      if (!admins.includes(username)) {
+        ammoIndicator.innerHTML = "x20";
+      }
     } else {
       alert("Please enter a username.");
     }
@@ -103,6 +143,11 @@ document
 
 // Show the popup when the page loads
 window.onload = function () {
+  const lastUsername = localStorage.getItem("lastUsername");
+  if (lastUsername) {
+    document.getElementById("usernameInput").value = lastUsername;
+  }
+
   document.getElementById("usernamePopup").style.display = "flex";
 };
 
@@ -156,8 +201,8 @@ function drawPlayers() {
       );
     }
 
-    // Draw player
-    ctx.fillStyle = player.color;
+    // Draw player with red color if hit
+    ctx.fillStyle = player.isHit ? "red" : player.color;
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
     ctx.fill();
@@ -179,7 +224,7 @@ function drawPlayers() {
       // Check if not the local player
       ctx.fillStyle = "white"; // Text color
     } else {
-      ctx.fillStyle = leftTeamColor;
+      ctx.fillStyle = player.color;
     }
     ctx.font = "17px Space Grotesk"; // Adjust font size and style as needed
     ctx.textAlign = "center";
@@ -230,6 +275,8 @@ function updatePlayerPosition(player) {
 
   shootingTimeoutIndicator.style.left = player.x + "px";
   shootingTimeoutIndicator.style.top = player.y + "px";
+  ammoIndicator.style.left = player.x + "px";
+  ammoIndicator.style.top = player.y + "px";
 
   // Set the flag to true if movement occurs
   if (player.velocityX !== 0 || player.velocityY !== 0) {
@@ -344,6 +391,9 @@ function update() {
         });
         needsUpdate = false;
       }
+    if (keys.space) {
+      shootBullet();
+    }
     }
     handleCollisions(); // Handle collisions
     drawPlayers();
@@ -353,14 +403,23 @@ function update() {
 }
 
 document.addEventListener("keydown", (event) => {
-  keys[event.key] = true;
-  needsUpdate = true; // Set flag on key down
+  if (event.code === "Space") {
+    keys.space = true;
+  } else {
+    keys[event.key] = true;
+  }
+  needsUpdate = true;
 });
 
 document.addEventListener("keyup", (event) => {
-  keys[event.key] = false;
-  needsUpdate = true; // Set flag on key up
+  if (event.code === "Space") {
+    keys.space = false;
+  } else {
+    keys[event.key] = false;
+  }
+  needsUpdate = true;
 });
+
 
 update();
 
@@ -378,7 +437,8 @@ canvas.addEventListener("mousemove", (event) => {
   needsUpdate = true;
 });
 
-canvas.addEventListener("click", (event) => {
+// shooting
+function shootBullet() {
   if (players[socket.id]) {
     if (isShootingTimeout) {
       return;
@@ -411,7 +471,7 @@ canvas.addEventListener("click", (event) => {
       velocityY: bulletVelocityY,
     });
 
-    // Emit bullet data to the server, including canvas dimensions
+    // Emit bullet data to the server, including canvas dimensions and bullet size
     socket.emit("shoot_bullet", {
       x: bulletX,
       y: bulletY,
@@ -419,9 +479,36 @@ canvas.addEventListener("click", (event) => {
       velocityY: bulletVelocityY,
       canvasWidth: canvas.width,
       canvasHeight: canvas.height,
+      size: bulletSize, // Include bullet size here
     });
 
-    if (players[socket.id] && players[socket.id].username !== "TotoB12") {
+    if (
+      players[socket.id] && 
+      !admins.includes(players[socket.id].username)
+    ) {
+      // decrease the ammo
+      players[socket.id].ammo -= 1;
+      ammoIndicator.innerHTML = 'x' + players[socket.id].ammo;
+      if (players[socket.id].ammo <= 0) {
+        isShootingTimeout = true;
+        shootingTimeoutIndicator.style.display = "block";
+        shootingTimeoutIndicator.classList.add("reloading");
+        setTimeout(() => {
+          // reset ammo
+          players[socket.id].ammo = 20;
+          ammoIndicator.innerHTML = 'x' + players[socket.id].ammo;
+          isShootingTimeout = false;
+          shootingTimeoutIndicator.style.display = "none";
+          shootingTimeoutIndicator.classList.remove("reloading");
+        }, reloadTime);
+        return;
+      }
+    }
+
+    if (
+      players[socket.id] && 
+      !admins.includes(players[socket.id].username)
+    ) {
       isShootingTimeout = true;
       shootingTimeoutIndicator.style.display = "block";
       shootingTimeoutIndicator.classList.add("active");
@@ -432,7 +519,12 @@ canvas.addEventListener("click", (event) => {
       }, shootingTimeout);
     }
   }
+};
+
+canvas.addEventListener("click", (event) => {
+  shootBullet();
 });
+
 
 function drawBullets() {
   for (const bullet of bullets) {
@@ -447,3 +539,4 @@ function drawBullets() {
     ctx.fill();
   }
 }
+

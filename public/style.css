@@ -4,7 +4,9 @@
   --left-team-color-glow: hsla(189, 100%, 51%, 0.5);
   --right-team-color: hsl(27, 70%, 55%);
   --right-team-color-glow: hsla(27, 50%, 55%, 0.5);
-  --neutral: #36cc00;
+  --good: #36cc00;
+  --warning: #ffd500;
+  --danger: #ff0000;  
   --arena-bg: hsl(0, 0%, 15%);
   --arena-outline: hsl(0, 0%, 20%);
   --arena-border: hsl(0, 0%, 30%);
@@ -354,12 +356,13 @@ canvas {
   z-index: 9999;
   width: 30px;
   height: 5px;
-  border: 1px solid var(--arena-line);
-  transform: translate(-50%, -50%);
+  background: var(--arena-outline);
+  transform: translate(-50%, 50%);
 
   & span {
     position: absolute;
     height: 100%;
+    margin: 0;
     top: 0;
     left: 0;
     background: var(--arena-line);
@@ -368,11 +371,52 @@ canvas {
   &.active span {
     animation: shooting-timeout-indicator-animation var(--shooting-timeout) linear;
   }
+
+  &.reloading span {
+    background: var(--good);
+    animation: reload-animation var(--reload-time) linear;
+  }
 }
 
 @keyframes shooting-timeout-indicator-animation {
   0% { width: 100%; }
   100% { width: 0%; }
+}
+
+@keyframes reload-animation {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+
+#ammo-indicator {
+  position: absolute;
+  z-index: 9999;
+  font-size: 12px;
+  text-align: center;
+  transform: translate(-50%, -80%);
+  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#health-indicator {
+  display: none;
+  position: absolute;
+  z-index: 9999;
+  width: 30px;
+  height: 5px;
+  background: linear-gradient(270deg, var(--good) 60%, var(--warning) 80%, var(--danger) 100%);
+  transform: translate(-50%, -50%);
+
+  & span {
+    position: absolute;
+    height: 100%;
+    margin: 0;
+    top: 0;
+    left: 0;
+    background: var(--arena-line);
+  }
 }
 
 

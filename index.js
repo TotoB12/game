@@ -16,6 +16,20 @@ io.on("connection", (socket) => {
   console.log("New connection:", socket.id);
 
   socket.on("register", (data) => {
+    // Check if the username is already taken
+    const isUsernameTaken = Object.values(players).some(
+      (player) => player.username === data.username
+    );
+
+    if (isUsernameTaken) {
+      // Emit an event to inform the client that the username is taken
+      socket.emit("register_response", {
+        success: false,
+        message: "Username already taken",
+      });
+      return; // Stop further execution for this registration attempt
+    }
+
     console.log("New player registered:", data.username);
 
     const blueTeamCount = Object.values(players).filter(
@@ -29,7 +43,7 @@ io.on("connection", (socket) => {
     if (blueTeamCount > orangeTeamCount) {
       team = "right"; // Orange team
       color = colorRightTeam;
-      x = 40 + Math.floor(Math.random() * 81) - 40;
+      x = 960 + Math.floor(Math.random() * 81) - 40;
       y = 281 + Math.floor(Math.random() * 201) - 100;
     } else if (orangeTeamCount > blueTeamCount) {
       team = "left"; // Blue team
@@ -46,7 +60,7 @@ io.on("connection", (socket) => {
       } else {
         team = "right"; // Orange team
         color = colorRightTeam;
-        x = 40 + Math.floor(Math.random() * 81) - 40;
+        x = 960 + Math.floor(Math.random() * 81) - 40;
         y = 281 + Math.floor(Math.random() * 201) - 100;
       }
     }
@@ -65,6 +79,8 @@ io.on("connection", (socket) => {
       velocityY: 0,
       weaponAngle: 0,
       team: team,
+      health: 100, // health of the player : 100 health points
+      ammo: 20 // ammunitions : 20 bullets
     };
     // Notify all players of the current players' state
     io.emit("players", players);
@@ -87,6 +103,7 @@ io.on("connection", (socket) => {
       velocityY: bulletData.velocityY,
       canvasWidth: bulletData.canvasWidth,
       canvasHeight: bulletData.canvasHeight,
+      size: bulletData.size, // Store bullet size received from the client
       owner: socket.id,
     });
     io.emit("bullets", bullets);
@@ -119,8 +136,32 @@ function updateBullets() {
     bullet.x += bullet.velocityX;
     bullet.y += bullet.velocityY;
 
-    // Use dynamic canvas boundaries for each bullet
+    let bulletHit = false;
+
+    // Check collision with each player
+    for (const playerId in players) {
+      const player = players[playerId];
+      if (bullet.owner === playerId) {
+        continue; // Skip own bullets
+      }
+
+      const dx = player.x - bullet.x;
+      const dy = player.y - bullet.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < player.size + bullet.size && players[bullet.owner].team !== player.team) {
+        bulletHit = true;
+
+        // Emit hit event to client
+        io.emit("player_hit", { playerId: playerId, hitBy: bullet.owner });
+
+        break; // Stop checking for other collisions
+      }
+    }
+
+    // Remove bullet if it hits a player from the opposite team or goes out of bounds
     if (
+      bulletHit ||
       bullet.x < 0 ||
       bullet.x > bullet.canvasWidth ||
       bullet.y < 0 ||
@@ -130,6 +171,9 @@ function updateBullets() {
     }
   }
 }
+
+// At the end of the updateBullets function or the interval
+io.emit("bullets", bullets);
 
 // Update bullet positions and send updates to clients
 setInterval(() => {
