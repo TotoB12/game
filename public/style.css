@@ -14,6 +14,8 @@
   --arena-line: hsl(0, 0%, 65%);
   --arena-line-glow: hsla(0, 0%, 65%, 0.5);
   --text: hsl(0, 0%, 95%);
+
+  --health-level: 100;
 }
 
 body {
@@ -404,17 +406,17 @@ canvas {
   display: none;
   position: absolute;
   z-index: 9999;
-  width: 30px;
-  height: 5px;
-  background: linear-gradient(270deg, var(--good) 60%, var(--warning) 80%, var(--danger) 100%);
-  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 6px;
+  background: linear-gradient(270deg, var(--good) 0%, var(--warning) 80%, var(--danger) 100%);
+  transform: translate(-50%, -30px);
 
   & span {
     position: absolute;
     height: 100%;
     margin: 0;
     top: 0;
-    left: 0;
+    right: calc(100% - var(--health-level));
     background: var(--arena-line);
   }
 }

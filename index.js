@@ -12,13 +12,22 @@ const colorRightTeam = "hsl(27, 70%, 55%)"; // Orange team color
 let players = {};
 let bullets = [];
 
+let walls = [
+  { x: 180, y: 281, width: 30, height: 270, color: "hsl(189, 100%, 51%)", string: false }, // Left wall
+  { x: 820, y: 281, width: 30, height: 270, color: "hsl(27, 70%, 55%)", string: false }, // Right wall
+  { x: 313, y: 170, width: 30, height: 30, color: "red", string: "1" }, // Ball
+  { x: 687, y: 170, width: 30, height: 30, color: "red", string: "1" }, // Ball
+  { x: 313, y: 392, width: 30, height: 30, color: "red", string: "2" }, // Ball
+  { x: 687, y: 392, width: 30, height: 30, color: "red", string: "2" }, // Ball
+];
+
 io.on("connection", (socket) => {
   console.log("New connection:", socket.id);
 
   socket.on("register", (data) => {
     // Check if the username is already taken
     const isUsernameTaken = Object.values(players).some(
-      (player) => player.username === data.username
+      (player) => player.username === data.username,
     );
 
     if (isUsernameTaken) {
@@ -33,10 +42,10 @@ io.on("connection", (socket) => {
     console.log("New player registered:", data.username);
 
     const blueTeamCount = Object.values(players).filter(
-      (p) => p.team === "left"
+      (p) => p.team === "left",
     ).length;
     const orangeTeamCount = Object.values(players).filter(
-      (p) => p.team === "right"
+      (p) => p.team === "right",
     ).length;
     let team, color, x, y;
 
@@ -80,7 +89,7 @@ io.on("connection", (socket) => {
       weaponAngle: 0,
       team: team,
       health: 100, // health of the player : 100 health points
-      ammo: 20 // ammunitions : 20 bullets
+      ammo: 20, // ammunitions : 20 bullets
     };
     // Notify all players of the current players' state
     io.emit("players", players);
@@ -128,6 +137,8 @@ io.on("connection", (socket) => {
       io.emit("players", players);
     }
   });
+
+  socket.emit("walls", walls);
 });
 
 function updateBullets() {
@@ -142,20 +153,33 @@ function updateBullets() {
     for (const playerId in players) {
       const player = players[playerId];
       if (bullet.owner === playerId) {
-        continue; // Skip own bullets
+        continue; // Skip collision check if the bullet is from the same player
       }
 
       const dx = player.x - bullet.x;
       const dy = player.y - bullet.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      if (distance < player.size + bullet.size && players[bullet.owner].team !== player.team) {
+      // Check if the bullet hits a player from the opposite team
+      if (
+        distance < player.size + bullet.size &&
+        players[bullet.owner].team !== player.team
+      ) {
+        //player.health -= 10;
         bulletHit = true;
-
-        // Emit hit event to client
-        io.emit("player_hit", { playerId: playerId, hitBy: bullet.owner });
-
         break; // Stop checking for other collisions
+      }
+    }
+
+    for (const wall of walls) {
+      if (
+        bullet.x > wall.x - wall.width / 2 &&
+        bullet.x < wall.x + wall.width / 2 &&
+        bullet.y > wall.y - wall.height / 2 &&
+        bullet.y < wall.y + wall.height / 2
+      ) {
+        bulletHit = true;
+        break;
       }
     }
 

@@ -12,12 +12,12 @@ const friction = 0.9;
 const maxSpeed = 5;
 
 const shootingTimeoutIndicator = document.getElementById(
-  "shooting-timeout-indicator"
+  "shooting-timeout-indicator",
 );
 
-const ammoIndicator = document.getElementById(
-  "ammo-indicator"
-);
+const ammoIndicator = document.getElementById("ammo-indicator");
+
+const healthIndicator = document.getElementById("health-indicator");
 
 let bullets = [];
 
@@ -27,8 +27,8 @@ const bulletColorLeftTeam = getComputedStyle(root)
   .getPropertyValue("--left-team-bullet-color")
   .trim();
 const leftTeamColor = getComputedStyle(root)
-.getPropertyValue("--left-team-color")
-.trim();
+  .getPropertyValue("--left-team-color")
+  .trim();
 
 const shootingTimeout = 250; // Adjust timeout as needed
 root.style.setProperty("--shooting-timeout", shootingTimeout + "ms");
@@ -48,7 +48,9 @@ let keys = {
 
 let mousePosition = { x: 0, y: 0 };
 
-const admins = ["TotoB12", "Txori"]
+const { Engine, Render, World, Bodies, Constraint, Composites } = Matter;
+
+const admins = ["TotoB12", "Txori"];
 
 let socket; // Declare the socket variable
 
@@ -105,7 +107,9 @@ function initializeGame(username) {
     if (players[data.playerId]) {
       players[data.playerId].isHit = true;
 
-      // Reset color after 0.2 seconds
+      //console.log(players[socket.id].health);
+
+      // Reset color after 0.1 seconds
       setTimeout(() => {
         if (players[data.playerId]) {
           players[data.playerId].isHit = false;
@@ -114,9 +118,65 @@ function initializeGame(username) {
     }
   });
 
+  socket.on("walls", (serverWalls) => {
+    walls = serverWalls;
+  });
 
   // Start the game update loop
   update();
+}
+
+function checkWallCollisions(player) {
+  let bounceFactor = 0.7;
+
+  for (const wall of walls) {
+    const leftWall = wall.x - wall.width / 2;
+    const rightWall = wall.x + wall.width / 2;
+    const topWall = wall.y - wall.height / 2;
+    const bottomWall = wall.y + wall.height / 2;
+
+    if (
+      player.x + player.size > leftWall &&
+      player.x - player.size < rightWall &&
+      player.y + player.size > topWall &&
+      player.y - player.size < bottomWall
+    ) {
+      // Check horizontal collision
+      if (player.x > leftWall && player.x < rightWall) {
+        player.velocityY = -player.velocityY * bounceFactor;
+        if (player.y > wall.y) {
+          player.y = bottomWall + player.size;
+        } else {
+          player.y = topWall - player.size;
+        }
+      }
+      // Check vertical collision
+      if (player.y > topWall && player.y < bottomWall) {
+        player.velocityX = -player.velocityX * bounceFactor;
+        if (player.x > wall.x) {
+          player.x = rightWall + player.size;
+        } else {
+          player.x = leftWall - player.size;
+        }
+      }
+    }
+  }
+}
+
+function drawRoundedRect(x, y, width, height, radius, color) {
+  ctx.beginPath();
+  ctx.fillStyle = color;
+  ctx.moveTo(x + radius, y);
+  ctx.lineTo(x + width - radius, y);
+  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+  ctx.lineTo(x + width, y + height - radius);
+  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  ctx.lineTo(x + radius, y + height);
+  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+  ctx.lineTo(x, y + radius);
+  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.closePath();
+  ctx.fill();
 }
 
 // Event listener for submitting the username
@@ -197,7 +257,7 @@ function drawPlayers() {
       player.weaponAngle = lerpAngle(
         player.weaponAngle,
         player.targetWeaponAngle,
-        0.1
+        0.1,
       );
     }
 
@@ -206,6 +266,18 @@ function drawPlayers() {
     ctx.beginPath();
     ctx.arc(player.x, player.y, player.size, 0, Math.PI * 2);
     ctx.fill();
+
+    // Draw walls with rounded corners
+    for (const wall of walls) {
+      drawRoundedRect(
+        wall.x - wall.width / 2,
+        wall.y - wall.height / 2,
+        wall.width,
+        wall.height,
+        12,
+        wall.color,
+      ); // Adjust the radius as needed
+    }
 
     // Draw weapon
     const weaponLength = 15; // Length of the weapon
@@ -228,7 +300,7 @@ function drawPlayers() {
     }
     ctx.font = "17px Space Grotesk"; // Adjust font size and style as needed
     ctx.textAlign = "center";
-    ctx.fillText(player.username, player.x, player.y - player.size - 10); // Position the text above the player
+    ctx.fillText(player.username, player.x, player.y - player.size - 15); // Position the text above the player
   }
 }
 
@@ -256,27 +328,29 @@ function updatePlayerPosition(player) {
 
   player.velocityX = Math.max(
     Math.min(player.velocityX, maxSpeed * speedMultiplier),
-    -maxSpeed * speedMultiplier
+    -maxSpeed * speedMultiplier,
   );
   player.velocityY = Math.max(
     Math.min(player.velocityY, maxSpeed * speedMultiplier),
-    -maxSpeed * speedMultiplier
+    -maxSpeed * speedMultiplier,
   );
 
   // Update position with boundary checks
   player.x = Math.max(
     Math.min(player.x + player.velocityX, canvas.width - player.size),
-    player.size
+    player.size,
   );
   player.y = Math.max(
     Math.min(player.y + player.velocityY, canvas.height - player.size),
-    player.size
+    player.size,
   );
 
   shootingTimeoutIndicator.style.left = player.x + "px";
   shootingTimeoutIndicator.style.top = player.y + "px";
   ammoIndicator.style.left = player.x + "px";
   ammoIndicator.style.top = player.y + "px";
+  healthIndicator.style.left = player.x + "px";
+  healthIndicator.style.top = player.y + "px";
 
   // Set the flag to true if movement occurs
   if (player.velocityX !== 0 || player.velocityY !== 0) {
@@ -346,21 +420,21 @@ function handleCollisions() {
       // Boundary check for player1
       player1.x = Math.max(
         Math.min(player1.x, canvas.width - player1.size),
-        player1.size
+        player1.size,
       );
       player1.y = Math.max(
         Math.min(player1.y, canvas.height - player1.size),
-        player1.size
+        player1.size,
       );
 
       // Boundary check for player2
       player2.x = Math.max(
         Math.min(player2.x, canvas.width - player2.size),
-        player2.size
+        player2.size,
       );
       player2.y = Math.max(
         Math.min(player2.y, canvas.height - player2.size),
-        player2.size
+        player2.size,
       );
     }
   }
@@ -370,13 +444,14 @@ function update() {
   if (usernameSubmitted) {
     if (socket.id && players[socket.id]) {
       updatePlayerPosition(players[socket.id]);
+      checkWallCollisions(players[socket.id]);
 
       // Update the weapon angle continuously
       const angle = getAngle(
         players[socket.id].x,
         players[socket.id].y,
         mousePosition.x,
-        mousePosition.y
+        mousePosition.y,
       );
       players[socket.id].targetWeaponAngle = angle;
 
@@ -391,14 +466,14 @@ function update() {
         });
         needsUpdate = false;
       }
-    if (keys.space) {
-      shootBullet();
-    }
+      if (keys.space) {
+        shootBullet();
+      }
     }
     handleCollisions(); // Handle collisions
     drawPlayers();
     drawBullets();
-    requestAnimationFrame(update); // Move this inside the if condition
+    requestAnimationFrame(update);
   }
 }
 
@@ -419,7 +494,6 @@ document.addEventListener("keyup", (event) => {
   }
   needsUpdate = true;
 });
-
 
 update();
 
@@ -482,13 +556,10 @@ function shootBullet() {
       size: bulletSize, // Include bullet size here
     });
 
-    if (
-      players[socket.id] && 
-      !admins.includes(players[socket.id].username)
-    ) {
+    if (players[socket.id] && !admins.includes(players[socket.id].username)) {
       // decrease the ammo
       players[socket.id].ammo -= 1;
-      ammoIndicator.innerHTML = 'x' + players[socket.id].ammo;
+      ammoIndicator.innerHTML = "x" + players[socket.id].ammo;
       if (players[socket.id].ammo <= 0) {
         isShootingTimeout = true;
         shootingTimeoutIndicator.style.display = "block";
@@ -496,7 +567,7 @@ function shootBullet() {
         setTimeout(() => {
           // reset ammo
           players[socket.id].ammo = 20;
-          ammoIndicator.innerHTML = 'x' + players[socket.id].ammo;
+          ammoIndicator.innerHTML = "x" + players[socket.id].ammo;
           isShootingTimeout = false;
           shootingTimeoutIndicator.style.display = "none";
           shootingTimeoutIndicator.classList.remove("reloading");
@@ -505,10 +576,7 @@ function shootBullet() {
       }
     }
 
-    if (
-      players[socket.id] && 
-      !admins.includes(players[socket.id].username)
-    ) {
+    if (players[socket.id] && !admins.includes(players[socket.id].username)) {
       isShootingTimeout = true;
       shootingTimeoutIndicator.style.display = "block";
       shootingTimeoutIndicator.classList.add("active");
@@ -519,12 +587,11 @@ function shootBullet() {
       }, shootingTimeout);
     }
   }
-};
+}
 
 canvas.addEventListener("click", (event) => {
   shootBullet();
 });
-
 
 function drawBullets() {
   for (const bullet of bullets) {
@@ -539,4 +606,3 @@ function drawBullets() {
     ctx.fill();
   }
 }
-
