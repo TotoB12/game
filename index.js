@@ -147,30 +147,6 @@ function updateBullets() {
     bullet.x += bullet.velocityX;
     bullet.y += bullet.velocityY;
 
-    let bulletHit = false;
-
-    // Check collision with each player
-    for (const playerId in players) {
-      const player = players[playerId];
-      if (bullet.owner === playerId) {
-        continue; // Skip collision check if the bullet is from the same player
-      }
-
-      const dx = player.x - bullet.x;
-      const dy = player.y - bullet.y;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      // Check if the bullet hits a player from the opposite team
-      if (
-        distance < player.size + bullet.size &&
-        players[bullet.owner].team !== player.team
-      ) {
-        //player.health -= 10;
-        bulletHit = true;
-        break; // Stop checking for other collisions
-      }
-    }
-
     for (const wall of walls) {
       if (
         bullet.x > wall.x - wall.width / 2 &&
@@ -178,14 +154,55 @@ function updateBullets() {
         bullet.y > wall.y - wall.height / 2 &&
         bullet.y < wall.y + wall.height / 2
       ) {
-        bulletHit = true;
-        break;
+        if (wall.string) {
+          let normal = { x: 0, y: 0 };
+
+          // Determine which side (top, bottom, left, right) the bullet hit
+          const relativePosX = bullet.x - wall.x;
+          const relativePosY = bullet.y - wall.y;
+
+          const topDist = Math.abs(relativePosY - (-wall.height / 2));
+          const bottomDist = Math.abs(relativePosY - (wall.height / 2));
+          const leftDist = Math.abs(relativePosX - (-wall.width / 2));
+          const rightDist = Math.abs(relativePosX - (wall.width / 2));
+
+          // Find the minimum distance to determine the closest side
+          const minDist = Math.min(topDist, bottomDist, leftDist, rightDist);
+
+          switch (minDist) {
+            case topDist:
+              normal.y = 1; // Hit the top side
+              break;
+            case bottomDist:
+              normal.y = -1; // Hit the bottom side
+              break;
+            case leftDist:
+              normal.x = 1; // Hit the left side
+              break;
+            case rightDist:
+              normal.x = -1; // Hit the right side
+              break;
+          }
+
+          // Calculate the dot product of velocity and normal
+          let dotProduct = bullet.velocityX * normal.x + bullet.velocityY * normal.y;
+
+          // Reflect velocity vector
+          bullet.velocityX -= 2 * dotProduct * normal.x;
+          bullet.velocityY -= 2 * dotProduct * normal.y;
+
+          // Adjust bullet position slightly off the wall to prevent sticking
+          bullet.x += bullet.velocityX;
+          bullet.y += bullet.velocityY;
+        } else {
+          bullets.splice(i, 1);
+          break;
+        }
       }
     }
 
-    // Remove bullet if it hits a player from the opposite team or goes out of bounds
+    // Remove bullet if it goes out of bounds
     if (
-      bulletHit ||
       bullet.x < 0 ||
       bullet.x > bullet.canvasWidth ||
       bullet.y < 0 ||

@@ -48,8 +48,6 @@ let keys = {
 
 let mousePosition = { x: 0, y: 0 };
 
-const { Engine, Render, World, Bodies, Constraint, Composites } = Matter;
-
 const admins = ["TotoB12", "Txori"];
 
 let socket; // Declare the socket variable
